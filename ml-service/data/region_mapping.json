@@ -1,0 +1,112 @@
+{
+  "regions": [
+    {
+      "id": "punjab",
+      "name": "Punjab",
+      "bounds": {
+        "lat_min": 29.5,
+        "lat_max": 32.5,
+        "lng_min": 73.0,
+        "lng_max": 77.0
+      },
+      "crop_type": "wheat",
+      "images": {
+        "january": "/static/satellite-images/punjab-jan-2025.jpg",
+        "june": "/static/satellite-images/punjab-jun-2025.jpg"
+      },
+      "ndvi": {
+        "january": 0.42,
+        "june": 0.73
+      }
+    },
+    {
+      "id": "haryana",
+      "name": "Haryana",
+      "bounds": {
+        "lat_min": 27.5,
+        "lat_max": 30.5,
+        "lng_min": 74.5,
+        "lng_max": 77.5
+      },
+      "crop_type": "rice",
+      "images": {
+        "january": "/static/satellite-images/haryana-jan-2025.jpg",
+        "june": "/static/satellite-images/haryana-jun-2025.jpg"
+      },
+      "ndvi": {
+        "january": 0.38,
+        "june": 0.75
+      }
+    },
+    {
+      "id": "up",
+      "name": "Uttar Pradesh",
+      "bounds": {
+        "lat_min": 24.0,
+        "lat_max": 29.0,
+        "lng_min": 77.0,
+        "lng_max": 84.0
+      },
+      "crop_type": "mixed",
+      "images": {
+        "january": "/static/satellite-images/up-jan-2025.jpg",
+        "june": "/static/satellite-images/up-jun-2025.jpg"
+      },
+      "ndvi": {
+        "january": 0.40,
+        "june": 0.70
+      }
+    },
+    {
+      "id": "maharashtra",
+      "name": "Maharashtra",
+      "bounds": {
+        "lat_min": 15.5,
+        "lat_max": 22.0,
+        "lng_min": 72.5,
+        "lng_max": 80.0
+      },
+      "crop_type": "sugarcane",
+      "images": {
+        "january": "/static/satellite-images/maharashtra-jan-2025.jpg",
+        "june": "/static/satellite-images/maharashtra-jun-2025.jpg"
+      },
+      "ndvi": {
+        "january": 0.45,
+        "june": 0.78
+      }
+    },
+    {
+      "id": "gujarat",
+      "name": "Gujarat",
+      "bounds": {
+        "lat_min": 20.0,
+        "lat_max": 24.5,
+        "lng_min": 68.0,
+        "lng_max": 74.5
+      },
+      "crop_type": "cotton",
+      "images": {
+        "january": "/static/satellite-images/gujarat-jan-2025.jpg",
+        "june": "/static/satellite-images/gujarat-jun-2025.jpg"
+      },
+      "ndvi": {
+        "january": 0.35,
+        "june": 0.68
+      }
+    }
+  ],
+  "default": {
+    "id": "default",
+    "name": "India",
+    "images": {
+      "january": "/static/satellite-images/punjab-jan-2025.jpg",
+      "june": "/static/satellite-images/punjab-jun-2025.jpg"
+    },
+    "ndvi": {
+      "january": 0.42,
+      "june": 0.73
+    }
+  }
+}
+
