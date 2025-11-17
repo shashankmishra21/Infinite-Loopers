@@ -31,7 +31,7 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
             <div className="w-10 h-10 bg-[#22C55E] rounded-lg flex items-center justify-center">
               <Leaf className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl text-[#059669]">CarbonSetu</span>
+            <span className="text-xl text-[#059669]">GreenBridge</span>
           </div>
 
           {/* Desktop Navigation */}
