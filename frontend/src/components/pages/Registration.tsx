@@ -35,9 +35,24 @@ export function Registration({ onNavigate }: RegistrationProps) {
     setMapPin({ lat, lng });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In real app, this would save data
+    const base = (import.meta as any).env?.VITE_API_URL || '';
+    try {
+      const res = await fetch(`${base}/api/farmers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) {
+        console.error('Failed to save registration', await res.text());
+        // still navigate or show error — for now navigate
+      }
+    } catch (err) {
+      console.error('Error saving registration', err);
+    }
+
     onNavigate('dashboard');
   };
 
