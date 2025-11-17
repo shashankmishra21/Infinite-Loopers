@@ -41,6 +41,8 @@ export function Registration({ onNavigate }: RegistrationProps) {
     onNavigate('dashboard');
   };
 
+  const crops = ['Rice', 'Wheat', 'Cotton', 'Sugarcane', 'Pulses', 'Vegetables'];
+
   const states = [
     'Andhra Pradesh',
     'Arunachal Pradesh',
@@ -70,7 +72,6 @@ export function Registration({ onNavigate }: RegistrationProps) {
     'Uttar Pradesh',
     'Uttarakhand',
     'West Bengal',
-    // Union Territories
     'Andaman and Nicobar Islands',
     'Chandigarh',
     'Dadra and Nagar Haveli and Daman and Diu',
@@ -78,9 +79,8 @@ export function Registration({ onNavigate }: RegistrationProps) {
     'Jammu and Kashmir',
     'Ladakh',
     'Lakshadweep',
-    'Puducherry',
+    'Puducherry'
   ];
-  const crops = ['Rice', 'Wheat', 'Cotton', 'Sugarcane', 'Pulses', 'Vegetables'];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-[#F3F4F6] py-12">
@@ -138,8 +138,8 @@ export function Registration({ onNavigate }: RegistrationProps) {
                       required
                     >
                       <option value="">Select State</option>
-                      {states.map((state) => (
-                        <option key={state} value={state}>{state}</option>
+                      {states.map((s) => (
+                        <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
                   </div>

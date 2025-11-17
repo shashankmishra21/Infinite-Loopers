@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Navbar } from './components/Navbar';
-import Footer from './components/Footer';
 import { Home } from './components/pages/Home';
 import { Registration } from './components/pages/Registration';
 import { Dashboard } from './components/pages/Dashboard';
@@ -34,7 +33,7 @@ export default function App() {
     <div className="min-h-screen bg-white flex flex-col">
       <Navbar currentPage={currentPage} onNavigate={setCurrentPage} />
       <main className="flex-grow">{renderPage()}</main>
-      <Footer />
+      {/* Footer removed per request */}
     </div>
   );
 }
