@@ -1,98 +1,98 @@
 {
   "regions": [
     {
-      "id": "punjab",
-      "name": "Punjab",
+      "id": "punjab_ludhiana",
+      "name": "Ludhiana, Punjab",
       "bounds": {
-        "lat_min": 29.5,
-        "lat_max": 32.5,
-        "lng_min": 73.0,
-        "lng_max": 77.0
+        "lat_min": 30.5,
+        "lat_max": 31.5,
+        "lng_min": 75.0,
+        "lng_max": 76.5
       },
-      "crop_type": "wheat",
+      "crop_type": "wheat-rice",
       "images": {
         "january": "/static/satellite-images/punjab-jan-2025.jpg",
         "june": "/static/satellite-images/punjab-jun-2025.jpg"
       },
       "ndvi": {
-        "january": 0.42,
-        "june": 0.73
+        "january": 0.45,
+        "june": 0.70
       }
     },
     {
-      "id": "haryana",
-      "name": "Haryana",
+      "id": "up_meerut",
+      "name": "Meerut, Uttar Pradesh",
       "bounds": {
-        "lat_min": 27.5,
-        "lat_max": 30.5,
-        "lng_min": 74.5,
-        "lng_max": 77.5
+        "lat_min": 28.5,
+        "lat_max": 29.5,
+        "lng_min": 77.2,
+        "lng_max": 78.2
       },
-      "crop_type": "rice",
-      "images": {
-        "january": "/static/satellite-images/haryana-jan-2025.jpg",
-        "june": "/static/satellite-images/haryana-jun-2025.jpg"
-      },
-      "ndvi": {
-        "january": 0.38,
-        "june": 0.75
-      }
-    },
-    {
-      "id": "up",
-      "name": "Uttar Pradesh",
-      "bounds": {
-        "lat_min": 24.0,
-        "lat_max": 29.0,
-        "lng_min": 77.0,
-        "lng_max": 84.0
-      },
-      "crop_type": "mixed",
+      "crop_type": "sugarcane",
       "images": {
         "january": "/static/satellite-images/up-jan-2025.jpg",
         "june": "/static/satellite-images/up-jun-2025.jpg"
       },
       "ndvi": {
-        "january": 0.40,
-        "june": 0.70
-      }
-    },
-    {
-      "id": "maharashtra",
-      "name": "Maharashtra",
-      "bounds": {
-        "lat_min": 15.5,
-        "lat_max": 22.0,
-        "lng_min": 72.5,
-        "lng_max": 80.0
-      },
-      "crop_type": "sugarcane",
-      "images": {
-        "january": "/static/satellite-images/maharashtra-jan-2025.jpg",
-        "june": "/static/satellite-images/maharashtra-jun-2025.jpg"
-      },
-      "ndvi": {
-        "january": 0.45,
+        "january": 0.50,
         "june": 0.78
       }
     },
     {
-      "id": "gujarat",
-      "name": "Gujarat",
+      "id": "maharashtra_aurangabad",
+      "name": "Aurangabad, Maharashtra",
       "bounds": {
-        "lat_min": 20.0,
-        "lat_max": 24.5,
-        "lng_min": 68.0,
-        "lng_max": 74.5
+        "lat_min": 19.3,
+        "lat_max": 20.5,
+        "lng_min": 74.8,
+        "lng_max": 76.0
       },
       "crop_type": "cotton",
       "images": {
-        "january": "/static/satellite-images/gujarat-jan-2025.jpg",
+        "january": "/static/satellite-images/maharashtra-feb-2025.jpg",
+        "june": "/static/satellite-images/maharashtra-jul-2025.jpg"
+      },
+      "ndvi": {
+        "january": 0.40,
+        "june": 0.65
+      }
+    },
+    {
+      "id": "gujarat_anand",
+      "name": "Anand, Gujarat",
+      "bounds": {
+        "lat_min": 22.0,
+        "lat_max": 23.0,
+        "lng_min": 72.4,
+        "lng_max": 73.4
+      },
+      "crop_type": "maize",
+      "images": {
+        "january": "/static/satellite-images/gujarat-feb-2025.jpg",
         "june": "/static/satellite-images/gujarat-jun-2025.jpg"
       },
       "ndvi": {
-        "january": 0.35,
-        "june": 0.68
+        "january": 0.45,
+        "june": 0.70
+      }
+    },
+    {
+      "id": "bihar_begusarai",
+      "name": "Begusarai, Bihar",
+      "bounds": {
+        "lat_min": 25.0,
+        "lat_max": 26.0,
+        "lng_min": 85.5,
+        "lng_max": 86.5
+      },
+      "crop_type": "rice",
+      "images": {
+        "january": "/static/satellite-images/bihar-jan-2025.jpg",
+        "june": "/static/satellite-images/bihar-jul-2025.jpg"
+      },
+      "ndvi": {
+        "january": 0.47,
+        "june": 0.73
       }
     }
   ],
@@ -100,13 +100,12 @@
     "id": "default",
     "name": "India",
     "images": {
-      "january": "/static/satellite-images/punjab-jan-2025.jpg",
-      "june": "/static/satellite-images/punjab-jun-2025.jpg"
+      "january": "/static/satellite-images/ludhiana-jan-2025.jpg",
+      "june": "/static/satellite-images/ludhiana-jun-2025.jpg"
     },
     "ndvi": {
-      "january": 0.42,
-      "june": 0.73
+      "january": 0.45,
+      "june": 0.70
     }
   }
 }
-
