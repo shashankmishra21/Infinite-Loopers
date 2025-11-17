@@ -1,35 +1,38 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useState } from 'react';
+import { Navbar } from './components/Navbar';
+import { Home } from './components/pages/Home';
+import { Registration } from './components/pages/Registration';
+import { Dashboard } from './components/pages/Dashboard';
+import { DigitalTwin } from './components/pages/DigitalTwin';
+import { Marketplace } from './components/pages/Marketplace';
+import { Certificate } from './components/pages/Certificate';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [currentPage, setCurrentPage] = useState('home');
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'home':
+        return <Home onNavigate={setCurrentPage} />;
+      case 'registration':
+        return <Registration onNavigate={setCurrentPage} />;
+      case 'dashboard':
+        return <Dashboard />;
+      case 'digitaltwin':
+        return <DigitalTwin />;
+      case 'marketplace':
+        return <Marketplace />;
+      case 'certificate':
+        return <Certificate />;
+      default:
+        return <Home onNavigate={setCurrentPage} />;
+    }
+  };
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <div className="min-h-screen bg-white">
+      <Navbar currentPage={currentPage} onNavigate={setCurrentPage} />
+      <main>{renderPage()}</main>
+    </div>
+  );
 }
-
-export default App
