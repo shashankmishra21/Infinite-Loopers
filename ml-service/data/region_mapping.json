@@ -7,7 +7,7 @@
         "lat_min": 30.5,
         "lat_max": 31.5,
         "lng_min": 75.0,
-        "lng_max": 76.5
+        "lng_max": 77.0
       },
       "crop_type": "wheat-rice",
       "images": {
