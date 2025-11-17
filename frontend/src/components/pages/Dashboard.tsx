@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Leaf, DollarSign, Award, TrendingUp } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -7,63 +7,92 @@ import { ImageWithFallback } from '../figma/ImageWithFallback';
 
 export function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState<'january' | 'june'>('january');
+  const [carbonSequestered, setCarbonSequestered] = useState<number>(0);
+  const [estimatedEarnings, setEstimatedEarnings] = useState<number>(0);
+  const [verifiedCredits, setVerifiedCredits] = useState<number>(0);
+  const [carbonProgress, setCarbonProgress] = useState<number>(0);
+  const [carbonData, setCarbonData] = useState<{ month: string; carbon: number }[]>([]);
 
-  const carbonData = [
-    { month: 'Jan', carbon: 12 },
-    { month: 'Feb', carbon: 15 },
-    { month: 'Mar', carbon: 18 },
-    { month: 'Apr', carbon: 22 },
-    { month: 'May', carbon: 28 },
-    { month: 'Jun', carbon: 35 },
-    { month: 'Jul', carbon: 32 },
-    { month: 'Aug', carbon: 29 },
-    { month: 'Sep', carbon: 26 },
-    { month: 'Oct', carbon: 24 },
-    { month: 'Nov', carbon: 20 },
-    { month: 'Dec', carbon: 18 },
-  ];
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        // Fetch marketplace stats
+        const statsRes = await fetch('/api/marketplace/stats');
+        const statsJson = await statsRes.json();
+        if (statsJson.success) {
+          setCarbonSequestered(statsJson.data.totalCarbonTons);
+          setEstimatedEarnings(statsJson.data.totalTransactionValue);
+          setVerifiedCredits(statsJson.data.soldCredits * 1); // example, you can adapt
+          // Set example progress towards 320 tons target
+          setCarbonProgress((statsJson.data.totalCarbonTons / 320) * 100);
+        }
+
+        // Fetch farmer-specific carbon data - example assumes a farmerId or phone known or defaults
+        // Example: const farmerPhone = 'somePhone';
+        // const farmerRes = await fetch(`/api/farmers/${farmerPhone}`);
+        // const farmerJson = await farmerRes.json();
+        // if (farmerJson.success) { 
+        //   build monthly carbon data from farmerJson.data (example below)
+        // }
+
+        // Set carbonData as monthly example for now
+        setCarbonData([
+          { month: 'Jan', carbon: 12 },
+          { month: 'Feb', carbon: 15 },
+          { month: 'Mar', carbon: 18 },
+          { month: 'Apr', carbon: 22 },
+          { month: 'May', carbon: 28 },
+          { month: 'Jun', carbon: 35 },
+          { month: 'Jul', carbon: 32 },
+          { month: 'Aug', carbon: 29 },
+          { month: 'Sep', carbon: 26 },
+          { month: 'Oct', carbon: 24 },
+          { month: 'Nov', carbon: 20 },
+          { month: 'Dec', carbon: 18 },
+        ]);
+      } catch (err) {
+        console.error('Dashboard data fetch error:', err);
+      }
+    }
+
+    fetchDashboardData();
+  }, []);
+
+  const radius = 80;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (carbonProgress / 100) * circumference;
 
   const overviewCards = [
     {
       icon: Leaf,
       label: 'Carbon Sequestered',
-      value: '245 tons',
+      value: `${carbonSequestered.toFixed(2)} tons`,
       change: '+12%',
       color: '#22C55E',
     },
     {
       icon: DollarSign,
       label: 'Estimated Earnings',
-      value: '₹3,67,500',
+      value: `₹${estimatedEarnings.toLocaleString()}`,
       change: '+8%',
       color: '#3B82F6',
     },
     {
       icon: Award,
       label: 'Verified Credits',
-      value: '187 tons',
+      value: `${verifiedCredits} tons`,
       change: '+15%',
       color: '#059669',
     },
   ];
-
-  // Carbon meter progress (0-100)
-  const carbonProgress = 76;
-  const radius = 80;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (carbonProgress / 100) * circumference;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-[#F3F4F6] py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl text-gray-900 mb-2">
-            Farmer Dashboard
-          </h1>
-          <p className="text-lg text-gray-600">
-            Track your carbon sequestration and earnings in real-time
-          </p>
+          <h1 className="text-3xl md:text-4xl text-gray-900 mb-2">Farmer Dashboard</h1>
+          <p className="text-lg text-gray-600">Track your carbon sequestration and earnings in real-time</p>
         </div>
 
         {/* Overview Cards */}
@@ -126,14 +155,14 @@ export function Dashboard() {
                 />
               </svg>
               <div className="text-center -mt-32">
-                <div className="text-4xl text-gray-900 mb-1">{carbonProgress}%</div>
+                <div className="text-4xl text-gray-900 mb-1">{carbonProgress.toFixed(0)}%</div>
                 <div className="text-gray-600">of target</div>
               </div>
             </div>
             <div className="mt-8 pt-6 border-t border-gray-200">
               <div className="flex justify-between mb-2">
                 <span className="text-gray-600">Current</span>
-                <span className="text-gray-900">245 tons</span>
+                <span className="text-gray-900">{carbonSequestered.toFixed(0)} tons</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Target</span>
@@ -151,9 +180,7 @@ export function Dashboard() {
                   variant={selectedMonth === 'january' ? 'default' : 'outline'}
                   onClick={() => setSelectedMonth('january')}
                   className={`rounded-lg ${
-                    selectedMonth === 'january'
-                      ? 'bg-[#22C55E] hover:bg-[#059669]'
-                      : 'border-gray-300'
+                    selectedMonth === 'january' ? 'bg-[#22C55E] hover:bg-[#059669]' : 'border-gray-300'
                   }`}
                 >
                   January
@@ -162,9 +189,7 @@ export function Dashboard() {
                   variant={selectedMonth === 'june' ? 'default' : 'outline'}
                   onClick={() => setSelectedMonth('june')}
                   className={`rounded-lg ${
-                    selectedMonth === 'june'
-                      ? 'bg-[#22C55E] hover:bg-[#059669]'
-                      : 'border-gray-300'
+                    selectedMonth === 'june' ? 'bg-[#22C55E] hover:bg-[#059669]' : 'border-gray-300'
                   }`}
                 >
                   June

@@ -1,4 +1,5 @@
-import { ArrowRight, TrendingUp, Users, Target, CheckCircle, Satellite, DollarSign } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowRight, Users, Target, CheckCircle, Satellite, DollarSign } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
@@ -8,28 +9,52 @@ interface HomeProps {
 }
 
 export function Home({ onNavigate }: HomeProps) {
+  const [marketSize, setMarketSize] = useState('₹75,000 Cr');
+  const [farmers, setFarmers] = useState('15 Crore');
+  const [accuracy, setAccuracy] = useState('95%');
+  const [verification, setVerification] = useState('Free');
+
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const res = await fetch('/api/marketplace/stats');
+        const data = await res.json();
+        if (data.success) {
+          // Example mapping; adapt these values as per actual backend data fields
+          setMarketSize(`₹${(data.data.totalTransactionValue / 1e7).toFixed(2)} Cr`);
+          setFarmers(data.data.totalCredits.toLocaleString());
+          setAccuracy('95%'); // Static unless backend provides accuracy
+          setVerification('Free'); // Static unless dynamic
+        }
+      } catch (error) {
+        console.error('Failed to fetch marketplace stats', error);
+      }
+    }
+    fetchStats();
+  }, []);
+
   const stats = [
     {
       icon: DollarSign,
-      value: '₹75,000 Cr',
+      value: marketSize,
       label: 'Market Size',
       color: '#22C55E',
     },
     {
       icon: Users,
-      value: '15 Crore',
+      value: farmers,
       label: 'Farmers',
       color: '#3B82F6',
     },
     {
       icon: Target,
-      value: '95%',
+      value: accuracy,
       label: 'Accuracy',
       color: '#059669',
     },
     {
       icon: CheckCircle,
-      value: 'Free',
+      value: verification,
       label: 'Verification',
       color: '#22C55E',
     },
@@ -39,7 +64,8 @@ export function Home({ onNavigate }: HomeProps) {
     {
       icon: Users,
       title: 'Register Your Farm',
-      description: 'Simple onboarding process with map-based farm location selection and crop details.',
+      description:
+        'Simple onboarding process with map-based farm location selection and crop details.',
       color: '#22C55E',
     },
     {
@@ -83,6 +109,7 @@ export function Home({ onNavigate }: HomeProps) {
                   className="border-2 border-[#22C55E] text-[#059669] hover:bg-[#22C55E] hover:text-white px-8 py-6 rounded-xl text-lg"
                 >
                   Explore Marketplace
+                  <ArrowRight className="ml-2 w-5 h-5" />
                 </Button>
               </div>
             </div>
@@ -131,9 +158,7 @@ export function Home({ onNavigate }: HomeProps) {
       <section className="py-20 bg-gradient-to-b from-[#F3F4F6] to-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl text-gray-900 mb-4">
-              How It Works
-            </h2>
+            <h2 className="text-3xl md:text-4xl text-gray-900 mb-4">How It Works</h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Three simple steps to start earning from your sustainable farming practices
             </p>
@@ -154,9 +179,7 @@ export function Home({ onNavigate }: HomeProps) {
                     <Icon className="w-8 h-8" style={{ color: feature.color }} />
                   </div>
                   <h3 className="text-xl mb-3 text-gray-900">{feature.title}</h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    {feature.description}
-                  </p>
+                  <p className="text-gray-600 leading-relaxed">{feature.description}</p>
                   <div
                     className="mt-6 inline-flex items-center gap-2 hover:gap-3 transition-all cursor-pointer"
                     style={{ color: feature.color }}
@@ -174,9 +197,7 @@ export function Home({ onNavigate }: HomeProps) {
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-[#22C55E] to-[#059669]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl text-white mb-6">
-            Ready to Start Earning?
-          </h2>
+          <h2 className="text-3xl md:text-4xl text-white mb-6">Ready to Start Earning?</h2>
           <p className="text-lg text-white/90 mb-8">
             Join thousands of Indian farmers already benefiting from carbon credits
           </p>
