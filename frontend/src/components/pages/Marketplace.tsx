@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Filter, MapPin, CheckCircle, ShoppingCart } from 'lucide-react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
@@ -8,89 +8,49 @@ export function Marketplace() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('price-low');
   const [regionFilter, setRegionFilter] = useState('all');
-
-  const listings = [
-    {
-      id: 1,
-      location: 'Nashik, Maharashtra',
-      farmer: 'Ramesh Kumar',
-      verified: true,
-      tons: 25,
-      pricePerTon: 1500,
-      cropType: 'Wheat',
-      ndvi: 0.78,
-    },
-    {
-      id: 2,
-      location: 'Amritsar, Punjab',
-      farmer: 'Gurpreet Singh',
-      verified: true,
-      tons: 40,
-      pricePerTon: 1450,
-      cropType: 'Rice',
-      ndvi: 0.82,
-    },
-    {
-      id: 3,
-      location: 'Dharwad, Karnataka',
-      farmer: 'Lakshmi Devi',
-      verified: true,
-      tons: 18,
-      pricePerTon: 1600,
-      cropType: 'Cotton',
-      ndvi: 0.75,
-    },
-    {
-      id: 4,
-      location: 'Meerut, Uttar Pradesh',
-      farmer: 'Vijay Patel',
-      verified: true,
-      tons: 32,
-      pricePerTon: 1480,
-      cropType: 'Sugarcane',
-      ndvi: 0.80,
-    },
-    {
-      id: 5,
-      location: 'Anand, Gujarat',
-      farmer: 'Kiran Shah',
-      verified: true,
-      tons: 22,
-      pricePerTon: 1550,
-      cropType: 'Vegetables',
-      ndvi: 0.76,
-    },
-    {
-      id: 6,
-      location: 'Jaipur, Rajasthan',
-      farmer: 'Mohan Meena',
-      verified: true,
-      tons: 15,
-      pricePerTon: 1620,
-      cropType: 'Pulses',
-      ndvi: 0.72,
-    },
-  ];
+  const [listings, setListings] = useState([]);
 
   const regions = ['All Regions', 'Maharashtra', 'Punjab', 'Karnataka', 'Uttar Pradesh', 'Gujarat', 'Rajasthan'];
 
+  useEffect(() => {
+    async function fetchListings() {
+      try {
+        // Construct query params for region filter if applicable
+        const params = new URLSearchParams();
+        if (regionFilter !== 'all') params.append('region', regionFilter);
+        const response = await fetch('/api/marketplace/listings?' + params.toString());
+        const data = await response.json();
+        if (data.success) {
+          setListings(data.data || []);
+        } else {
+          setListings([]);
+          console.error('Failed to fetch marketplace listings:', data.error);
+        }
+      } catch (error) {
+        console.error('Marketplace fetch error:', error);
+        setListings([]);
+      }
+    }
+    fetchListings();
+  }, [regionFilter]);
+
+  // Filter and sort client-side as before
   const filteredListings = listings
     .filter((listing) => {
-      const matchesSearch = 
-        listing.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        listing.farmer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        listing.cropType.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesRegion = 
-        regionFilter === 'all' || 
-        listing.location.includes(regionFilter);
-      
+      const location = listing.farmLocation || '';
+      const farmer = listing.farmerName || '';
+      const cropType = listing.cropType || '';
+      const matchesSearch =
+        location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        farmer.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        cropType.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesRegion = regionFilter === 'all' || location.includes(regionFilter);
       return matchesSearch && matchesRegion;
     })
     .sort((a, b) => {
       if (sortBy === 'price-low') return a.pricePerTon - b.pricePerTon;
       if (sortBy === 'price-high') return b.pricePerTon - a.pricePerTon;
-      if (sortBy === 'tons-high') return b.tons - a.tons;
+      if (sortBy === 'tons-high') return b.carbonTons - a.carbonTons;
       return 0;
     });
 
@@ -99,12 +59,8 @@ export function Marketplace() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl text-gray-900 mb-2">
-            Carbon Credit Marketplace
-          </h1>
-          <p className="text-lg text-gray-600">
-            Browse and purchase verified carbon credits from Indian farmers
-          </p>
+          <h1 className="text-3xl md:text-4xl text-gray-900 mb-2">Carbon Credit Marketplace</h1>
+          <p className="text-lg text-gray-600">Browse and purchase verified carbon credits from Indian farmers</p>
         </div>
 
         {/* Filters Section */}
@@ -164,16 +120,16 @@ export function Marketplace() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredListings.map((listing) => (
             <Card
-              key={listing.id}
+              key={listing._id || listing.id}
               className="p-6 shadow-lg rounded-2xl border-0 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer"
             >
               {/* Header */}
               <div className="flex justify-between items-start mb-4">
                 <div className="flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-[#22C55E]" />
-                  <span className="text-gray-900">{listing.location}</span>
+                  <span className="text-gray-900">{listing.farmLocation}</span>
                 </div>
-                {listing.verified && (
+                {listing.isVerified && (
                   <div className="bg-[#22C55E]/10 p-1.5 rounded-full">
                     <CheckCircle className="w-5 h-5 text-[#22C55E]" />
                   </div>
@@ -184,10 +140,10 @@ export function Marketplace() {
               <div className="mb-4">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-10 h-10 bg-gradient-to-br from-[#22C55E] to-[#059669] rounded-full flex items-center justify-center text-white">
-                    {listing.farmer.charAt(0)}
+                    {listing.farmerName.charAt(0)}
                   </div>
                   <div>
-                    <div className="text-gray-900">{listing.farmer}</div>
+                    <div className="text-gray-900">{listing.farmerName}</div>
                     <div className="text-sm text-gray-600">{listing.cropType}</div>
                   </div>
                 </div>
@@ -197,11 +153,11 @@ export function Marketplace() {
               <div className="grid grid-cols-2 gap-3 mb-4">
                 <div className="bg-gray-50 rounded-lg p-3">
                   <div className="text-xs text-gray-600 mb-1">Available</div>
-                  <div className="text-lg text-gray-900">{listing.tons} tons</div>
+                  <div className="text-lg text-gray-900">{listing.carbonTons} tons</div>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-3">
                   <div className="text-xs text-gray-600 mb-1">NDVI Score</div>
-                  <div className="text-lg text-[#22C55E]">{listing.ndvi}</div>
+                  <div className="text-lg text-[#22C55E]">{listing.ndvi || 'N/A'}</div>
                 </div>
               </div>
 
@@ -214,7 +170,7 @@ export function Marketplace() {
                 <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                   <span className="text-gray-900">Total Price</span>
                   <span className="text-xl text-[#059669]">
-                    ₹{(listing.tons * listing.pricePerTon).toLocaleString()}
+                    ₹{(listing.carbonTons * listing.pricePerTon).toLocaleString()}
                   </span>
                 </div>
               </div>
@@ -235,9 +191,7 @@ export function Marketplace() {
               <Search className="w-10 h-10 text-gray-400" />
             </div>
             <h3 className="text-xl text-gray-900 mb-2">No listings found</h3>
-            <p className="text-gray-600">
-              Try adjusting your search or filters to find more carbon credits
-            </p>
+            <p className="text-gray-600">Try adjusting your search or filters to find more carbon credits</p>
           </Card>
         )}
 
@@ -250,8 +204,7 @@ export function Marketplace() {
             <div>
               <h3 className="text-lg text-gray-900 mb-2">All Credits are Verified</h3>
               <p className="text-gray-600">
-                Every carbon credit on our marketplace is verified using AI-powered satellite monitoring 
-                and blockchain technology. Transactions are secure, transparent, and traceable.
+                Every carbon credit on our marketplace is verified using AI-powered satellite monitoring and blockchain technology. Transactions are secure, transparent, and traceable.
               </p>
             </div>
           </div>
