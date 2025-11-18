@@ -56,7 +56,7 @@ exports.getFarmById = async (req, res) => {
 exports.calculateFarmCarbon = async (req, res) => {
   try {
     const { farmId } = req.params;
-    
+
     const farm = await Farm.findById(farmId);
     if (!farm) {
       return res.status(404).json({
@@ -66,26 +66,29 @@ exports.calculateFarmCarbon = async (req, res) => {
     }
     
     // Call ML service
-    const carbonData = await mlService.calculateCarbon({
-      farmId: farm._id.toString(),
-      location: farm.location,
-      acres: farm.acres,
-      cropType: farm.cropType
-    });
-    
-    // Update farm with calculated data
-    farm.carbonTons = carbonData.carbon_tons;
-    farm.region = carbonData.region;
-    farm.satelliteImages = carbonData.satellite_images;
-    farm.ndviHistory = [
-      { month: 'January', ndvi: carbonData.ndvi_baseline, date: new Date() },
-      { month: 'June', ndvi: carbonData.ndvi_current, date: new Date() }
-    ];
-    farm.status = 'verified';
-    farm.verifiedAt = new Date();
-    
-    await farm.save();
-    
+    const carbonResponse = await mlService.calculateCarbon({
+  farmId: farm._id.toString(),
+  location: farm.location,
+  acres: farm.acres,
+  cropType: farm.cropType
+});
+
+// Destructure `data` property from response
+const carbonData = carbonResponse.data;
+
+farm.carbonTons = carbonData.carbonTons;
+farm.region = carbonData.region;
+farm.satelliteImages = carbonData.satelliteImages;
+farm.ndviHistory = [
+  { month: 'January', ndvi: carbonData.ndvi.baseline, date: new Date() },
+  { month: 'June', ndvi: carbonData.ndvi.current, date: new Date() }
+];
+farm.status = 'verified';
+farm.earningsEstimate = carbonData.earningsEstimate;
+farm.verifiedAt = new Date();
+
+await farm.save();
+
     res.json({
       success: true,
       data: {

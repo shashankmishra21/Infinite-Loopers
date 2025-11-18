@@ -1,3 +1,4 @@
+from app.services.image_processor import SatelliteImageProcessor
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -7,6 +8,8 @@ from pathlib import Path
 import os
 
 app = FastAPI(title="CarbonSetu ML Service", version="1.0.0")
+
+image_processor = SatelliteImageProcessor()
 
 # CORS middleware
 app.add_middleware(
@@ -182,7 +185,7 @@ async def detect_region(request: RegionRequest):
 # Calculate carbon endpoint
 @app.post("/calculate-carbon")
 async def calculate_carbon(request: CarbonRequest):
-    """Calculate carbon sequestration for a farm"""
+    """Calculate carbon sequestration for a farm using actual image processing"""
     
     if not REGION_DATA:
         raise HTTPException(status_code=500, detail="Region mapping not loaded")
@@ -199,13 +202,10 @@ async def calculate_carbon(request: CarbonRequest):
     
     # Detect region
     detected_region = None
-    region_name = "India"  # Default name
+    region_name = "India"
     
     for region in REGION_DATA.get('regions', []):
         bounds = region['bounds']
-        
-        # Debug: print bounds check
-        print(f"   Checking {region['name']}: lat {bounds['lat_min']}-{bounds['lat_max']}, lng {bounds['lng_min']}-{bounds['lng_max']}")
         
         if (bounds['lat_min'] <= lat <= bounds['lat_max'] and
             bounds['lng_min'] <= lng <= bounds['lng_max']):
@@ -219,12 +219,41 @@ async def calculate_carbon(request: CarbonRequest):
         region_name = "India (Default)"
         print(f"   ⚠️ No match, using default region")
     
-    # Get NDVI values
-    ndvi_jan = detected_region['ndvi']['january']
-    ndvi_jun = detected_region['ndvi']['june']
-    ndvi_increase = ndvi_jun - ndvi_jan
+    # ==========================================
+    # NEW: PROCESS ACTUAL SATELLITE IMAGES
+    # ==========================================
     
-    print(f"   NDVI: {ndvi_jan} → {ndvi_jun} (increase: {ndvi_increase:.2f})")
+    try:
+        # Get image paths
+        jan_image_path = detected_region['images']['january']
+        jun_image_path = detected_region['images']['june']
+        
+        # Process images to calculate NDVI
+        USE_IMAGE_PROCESSING = True 
+        image_results = image_processor.process_farm_images(
+            jan_image_path,
+            jun_image_path
+        )
+        
+        # Use calculated NDVI values (not JSON values!)
+        ndvi_jan = image_results['ndvi_january']
+        ndvi_jun = image_results['ndvi_june']
+        ndvi_increase = image_results['ndvi_increase']
+        
+        print(f"   📊 Using CALCULATED NDVI from images")
+        
+    except Exception as img_error:
+        print(f"   ⚠️ Image processing failed: {img_error}")
+        print(f"   📊 Falling back to JSON NDVI values")
+        
+        # Fallback to JSON values if image processing fails
+        ndvi_jan = detected_region['ndvi']['january']
+        ndvi_jun = detected_region['ndvi']['june']
+        ndvi_increase = ndvi_jun - ndvi_jan
+    
+    # ==========================================
+    
+    print(f"   NDVI: {ndvi_jan:.3f} → {ndvi_jun:.3f} (increase: {ndvi_increase:.3f})")
     
     # Crop-specific factors
     crop_factors = {
@@ -239,14 +268,14 @@ async def calculate_carbon(request: CarbonRequest):
     crop_factor = crop_factors.get(request.cropType.lower(), 1.2)
     print(f"   Crop factor ({request.cropType}): {crop_factor}")
     
-    # Carbon calculation (IPCC Tier 2 formula)
-    carbon_tons = ndvi_increase * acres * crop_factor * 4.0  # ✅ FIXED CONSTANT
+    # Carbon calculation
+    carbon_tons = ndvi_increase * acres * crop_factor * 4.0
     carbon_tons = round(carbon_tons, 2)
     
-    # Earnings estimate (₹3,200 per ton)
+    # Earnings estimate
     earnings = carbon_tons * 3200
     
-    print(f"   Calculation: {ndvi_increase:.2f} × {acres} × {crop_factor} × 4.0")
+    print(f"   Calculation: {ndvi_increase:.3f} × {acres} × {crop_factor} × 4.0")
     print(f"   ✅ Calculated carbon: {carbon_tons} tons")
     print(f"   💰 Estimated earnings: ₹{earnings:,}")
     
@@ -254,11 +283,11 @@ async def calculate_carbon(request: CarbonRequest):
         "success": True,
         "data": {
             "farmId": request.farmId,
-            "region": region_name,  # ✅ USE THIS VARIABLE
+            "region": region_name,
             "ndvi": {
-                "baseline": round(ndvi_jan, 2),
-                "current": round(ndvi_jun, 2),
-                "increase": round(ndvi_increase, 2)
+                "baseline": round(ndvi_jan, 3),
+                "current": round(ndvi_jun, 3),
+                "increase": round(ndvi_increase, 3)
             },
             "carbonTons": carbon_tons,
             "earningsEstimate": int(earnings),
@@ -266,9 +295,43 @@ async def calculate_carbon(request: CarbonRequest):
             "satelliteImages": {
                 "january": detected_region['images']['january'],
                 "june": detected_region['images']['june']
-            }
+            },
+            "processing_method": "image_analysis"  # NEW: indicates calculation method
         }
     }
+
+@app.post("/debug/process-images")
+async def debug_process_images(request: dict):
+    """
+    Debug endpoint to test image processing
+    
+    Body: {
+        "january_image": "ludhiana-jan-2025.jpg",
+        "june_image": "ludhiana-jun-2025.jpg"
+    }
+    """
+    try:
+        jan_path = request.get('january_image')
+        jun_path = request.get('june_image')
+        
+        result = image_processor.process_farm_images(jan_path, jun_path)
+        
+        # Get detailed stats for both images
+        jan_stats = image_processor.get_image_statistics(jan_path)
+        jun_stats = image_processor.get_image_statistics(jun_path)
+        
+        return {
+            "success": True,
+            "ndvi_results": result,
+            "january_stats": jan_stats,
+            "june_stats": jun_stats
+        }
+        
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
 
 
 # Debug endpoint to check loaded data

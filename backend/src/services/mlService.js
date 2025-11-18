@@ -9,12 +9,13 @@ class MLService {
   async calculateCarbon(farmData) {
     try {
       const response = await axios.post(`${ML_SERVICE_URL}/calculate-carbon`, {
-        farm_id: farmData.farmId,
-        lat: farmData.location.lat,
-        lng: farmData.location.lng,
-        acres: farmData.acres,
-        crop_type: farmData.cropType
-      });
+      farmId: farmData.farmId,                    // ✅ correct field name
+      latitude: farmData.location.lat,            // ✅ correct field name
+      longitude: farmData.location.lng,           // ✅ correct field name
+      acres: farmData.acres,
+      cropType: farmData.cropType                 // ✅ correct field name
+});
+
       
       return response.data;
     } catch (error) {
