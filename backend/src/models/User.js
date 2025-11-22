@@ -4,48 +4,38 @@ const userSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, 'Name is required'],
-    trim: true,
-    minlength: [3, 'Name must be at least 3 characters'],
-    maxlength: [50, 'Name cannot exceed 50 characters']
+    trim: true
   },
-  
   phone: {
     type: String,
     required: [true, 'Phone number is required'],
     unique: true,
-    match: [/^[6-9]\d{9}$/, 'Please enter a valid Indian mobile number']
+    match: [/^\d{10}$/, 'Please enter a valid 10-digit phone number']
   },
-  
+  address: {
+    state: String,
+    district: String,
+    village: String
+  },
   role: {
     type: String,
-    enum: ['farmer', 'corporate', 'admin'],
+    enum: ['farmer', 'buyer', 'admin'],
     default: 'farmer'
   },
-  
   walletAddress: {
     type: String,
-    sparse: true, // Allows multiple null values
-    validate: {
-      validator: function(v) {
-        if (!v) return true; // Optional field
-        return /^0x[a-fA-F0-9]{40}$/.test(v);
-      },
-      message: 'Invalid Ethereum address'
-    }
+    default: null
   },
-  
-  isActive: {
+  farms: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Farm'
+  }],
+  isVerified: {
     type: Boolean,
-    default: true
-  },
-  
-  createdAt: {
-    type: Date,
-    default: Date.now
+    default: false
   }
+}, {
+  timestamps: true
 });
-
-// Index for faster queries
-// userSchema.index({ phone: 1 });
 
 module.exports = mongoose.model('User', userSchema);

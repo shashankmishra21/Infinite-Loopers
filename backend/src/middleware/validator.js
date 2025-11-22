@@ -1,28 +1,40 @@
-const Joi = require('joi');
+const { body, validationResult } = require('express-validator');
 
-/**
- * Validate farmer registration
- */
-exports.validateFarmerRegistration = (req, res, next) => {
-  const schema = Joi.object({
-    name: Joi.string().min(3).max(50).required(),
-    phone: Joi.string().pattern(/^[6-9]\d{9}$/).required(),
-    lat: Joi.number().min(-90).max(90).required(),
-    lng: Joi.number().min(-180).max(180).required(),
-    acres: Joi.number().min(0.1).max(1000).required(),
-    cropType: Joi.string().valid('wheat', 'rice', 'sugarcane', 'cotton', 'maize', 'pulses', 'vegetables', 'mixed').required(),
-    farmingPractice: Joi.string().valid('organic', 'conventional', 'natural').optional()
-  });
+exports.validateFarmerRegistration = [
+  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('phone').matches(/^\d{10}$/).withMessage('Phone must be 10 digits'),
+  body('state').notEmpty().withMessage('State is required'),
+  body('district').notEmpty().withMessage('District is required'),
+  body('village').notEmpty().withMessage('Village is required'),
+  body('acres').isFloat({ min: 0.1 }).withMessage('Farm size must be positive'),
+  body('cropType').notEmpty().withMessage('Crop type is required'),
   
-  const { error } = schema.validate(req.body);
-  
-  if (error) {
-    return res.status(400).json({
-      success: false,
-      error: 'Validation failed',
-      details: error.details[0].message
-    });
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+    next();
   }
+];
+
+exports.validateSatelliteRegistration = [
+  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('phone').matches(/^\d{10}$/).withMessage('Phone must be 10 digits'),
+  body('cropType').notEmpty().withMessage('Crop type is required'),
+  body('farmBoundary').isArray().withMessage('Farm boundary must be an array'),
   
-  next();
-};
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        errors: errors.array()
+      });
+    }
+    next();
+  }
+];
