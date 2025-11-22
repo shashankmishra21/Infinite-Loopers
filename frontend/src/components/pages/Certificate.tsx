@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom'; // assuming react-router is used
-import { Download, Share2, CheckCircle, Award } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 import { Card } from '../ui/card';
-import { Button } from '../ui/button';
 
 type CertificateData = {
   farmerName: string;
@@ -83,26 +81,14 @@ export function Certificate() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-[#F3F4F6] py-12">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header and Certificate Card remain unchanged, using certificateData for fields */}
-        {/* ... (same JSX structure as your original with certificateData fields used where applicable) */}
-        {/* Farmer Name */}
         <div className="text-xl text-gray-900">{certificateData.farmerName}</div>
-        {/* Farm Location */}
         <div className="text-xl text-gray-900">{certificateData.location}</div>
-        {/* Crop Type */}
         <div className="text-xl text-gray-900">{certificateData.cropType}</div>
-        {/* Farm Size */}
         <div className="text-xl text-gray-900">{certificateData.farmSize}</div>
-        {/* Total Carbon Sequestered */}
-        {certificateData.tonsSequestered}
-        {/* Certificate ID */}
+        <div className="text-xl text-gray-900">{certificateData.tonsSequestered.toFixed(2)} tons sequestered</div>
         <div className="text-gray-900 font-mono">{certificateData.certificateId}</div>
-        {/* Issue Date */}
         <div className="text-gray-900">{certificateData.issueDate}</div>
-        {/* Blockchain Hash */}
         <div className="text-gray-900 font-mono text-sm break-all">{certificateData.blockchainHash}</div>
-        {/* The rest of your JSX remains exactly as is */}
-        {/* Buttons and other static text are unchanged */}
       </div>
     </div>
   );

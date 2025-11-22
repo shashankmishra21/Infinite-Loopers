@@ -1,239 +1,265 @@
-import React, { useState } from 'react';
-import { MapPin, Save } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Card } from '../ui/card';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { ImageWithFallback } from '../figma/ImageWithFallback';
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import '@geoman-io/leaflet-geoman-free';
+import '@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css';
+import 'leaflet/dist/leaflet.css';
 
-interface RegistrationProps {
-  onNavigate: (page: string) => void;
+// Component to add Geoman controls
+function GeomanControls({ onShapeCreated }: { onShapeCreated: (coords: any) => void }) {
+  const map = useMap();
+
+  useEffect(() => {
+    map.pm.addControls({
+      position: 'topright',
+      drawPolygon: true,
+      drawCircle: false,
+      drawCircleMarker: false,
+      drawPolyline: false,
+      drawRectangle: true,
+      drawMarker: false,
+      drawText: false,
+      editMode: true,
+      dragMode: false,
+      cutPolygon: false,
+      removalMode: true
+    });
+
+    map.on('pm:create', (e: any) => {
+      const layer = e.layer as L.Polygon | L.Rectangle;
+      const geoJSON = (layer as any).toGeoJSON();
+      console.log('Polygon created:', geoJSON.geometry.coordinates);
+      onShapeCreated(geoJSON.geometry.coordinates);
+    });
+
+    return () => {
+      map.pm.removeControls();
+      map.off('pm:create');
+    };
+  }, [map, onShapeCreated]);
+
+  return null;
 }
 
-export function Registration({ onNavigate }: RegistrationProps) {
+export function Registration({ onNavigate }: { onNavigate: (page: string) => void }) {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
     state: '',
     district: '',
     village: '',
-    farmSize: '',
     cropType: '',
   });
 
-  const [mapPin, setMapPin] = useState<{ lat: number; lng: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [farmBoundary, setFarmBoundary] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleMapClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // Simulate coordinates (in real app, this would use actual map library)
-    const lat = 20.5937 + (y / rect.height) * 10;
-    const lng = 78.9629 + (x / rect.width) * 10;
-
-    setMapPin({ lat, lng });
-  };
+  const crops = ['Rice', 'Wheat', 'Cotton', 'Sugarcane', 'Pulses', 'Vegetables'];
+  const states = ['Andhra Pradesh', 'Bihar', 'Gujarat', 'Punjab', 'Karnataka', 'Maharashtra', 'Uttar Pradesh'];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!mapPin) {
-      setError('Please select a farm location on the map.');
+    
+    if (!farmBoundary) {
+      alert('Please draw your farm boundary on the map');
       return;
     }
 
-    setError(null);
-
-    // Prepare payload matching backend schema
-    const payload = {
-      name: formData.name,
-      phone: formData.phone,
-      lat: mapPin.lat,
-      lng: mapPin.lng,
-      acres: parseFloat(formData.farmSize),
-      cropType: formData.cropType.toLowerCase(),
-      farmingPractice: 'conventional', // Default, or add field if user selects
-    };
+    setLoading(true);
 
     try {
-      const res = await fetch('/api/farmers/register', {
+      const payload = {
+        ...formData,
+        farmBoundary: farmBoundary,
+        dateRange: {
+          start: '2025-01-01',
+          end: '2025-06-30'
+        }
+      };
+
+      const res = await fetch('http://localhost:5000/api/farmers/register-with-satellite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload)
       });
 
-      const resJson = await res.json();
-
-      if (!res.ok || !resJson.success) {
-        setError(resJson.error || 'Registration failed. Please try again.');
-        return;
+      const json = await res.json();
+      
+      if (json.success) {
+        alert('✅ Registration successful!');
+        setLoading(false);
+        onNavigate('dashboard');
+      } else {
+        alert('❌ Registration failed: ' + json.error);
+        setLoading(false);
       }
-
-      // On success, navigate dashboard or show success message
-      onNavigate('dashboard');
-    } catch (err) {
-      console.error('Error saving registration', err);
-      setError('Network error. Please try again later.');
+    } catch (error) {
+      console.error('Error:', error);
+      alert('❌ Error during registration');
+      setLoading(false);
     }
   };
 
-  const crops = ['Rice', 'Wheat', 'Cotton', 'Sugarcane', 'Pulses', 'Vegetables'];
-  const states = [
-    'Andhra Pradesh',
-    'Assam',
-    'Bihar',
-    'Chhattisgarh',
-    'Gujarat',
-    'Haryana',
-    'Karnataka',
-    'Kerala',
-    'Madhya Pradesh',
-    'Maharashtra',
-    'Odisha',
-    'Punjab',
-    'Rajasthan',
-    'Tamil Nadu',
-    'Uttar Pradesh',
-    'West Bengal',
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white to-[#F3F4F6] py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-3xl md:text-4xl text-gray-900 mb-4">Register Your Farm</h1>
-          <p className="text-lg text-gray-600">Complete the form below to start earning carbon credits</p>
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <h1 className="text-3xl font-bold text-gray-800">🌾 Register Your Farm</h1>
         </div>
+      </div>
 
-        <form onSubmit={handleSubmit}>
-          {/* Form inputs */}
-          <Card className="p-8 shadow-lg rounded-2xl border-0 mb-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* Form Fields Section */}
+          <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
+            <h2 className="text-xl font-semibold mb-6 text-gray-800 border-b pb-3">
+              📋 Farmer Details
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <Label className="block text-sm font-medium text-gray-700 mb-2">Name</Label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Farmer name"
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="text"
+                  value={formData.name} 
+                  onChange={e => setFormData({...formData, name: e.target.value})}
+                  placeholder="Enter your full name"
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
-
+              
               <div>
-                <Label className="block text-sm font-medium text-gray-700 mb-2">Phone</Label>
-                <Input
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="10-digit phone number"
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="tel"
+                  value={formData.phone} 
+                  onChange={e => setFormData({...formData, phone: e.target.value})}
+                  maxLength={10}
+                  placeholder="10-digit mobile number"
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
-
+              
               <div>
-                <Label className="block text-sm font-medium text-gray-700 mb-2">State</Label>
-                <select
-                  value={formData.state}
-                  onChange={(e) => setFormData({ ...formData, state: e.target.value })}
-                  className="w-full rounded-md border px-3 py-2"
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  State <span className="text-red-500">*</span>
+                </label>
+                <select 
+                  value={formData.state} 
+                  onChange={e => setFormData({...formData, state: e.target.value})}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
-                  <option value="">Select state</option>
-                  {states.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
+                  <option value="">Select State</option>
+                  {states.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
-
+              
               <div>
-                <Label className="block text-sm font-medium text-gray-700 mb-2">District</Label>
-                <Input
-                  value={formData.district}
-                  onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                  placeholder="District"
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  District <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="text"
+                  value={formData.district} 
+                  onChange={e => setFormData({...formData, district: e.target.value})}
+                  placeholder="Enter district"
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
-
+              
               <div>
-                <Label className="block text-sm font-medium text-gray-700 mb-2">Village</Label>
-                <Input
-                  value={formData.village}
-                  onChange={(e) => setFormData({ ...formData, village: e.target.value })}
-                  placeholder="Village"
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Village <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="text"
+                  value={formData.village} 
+                  onChange={e => setFormData({...formData, village: e.target.value})}
+                  placeholder="Enter village"
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 />
               </div>
-
+              
               <div>
-                <Label className="block text-sm font-medium text-gray-700 mb-2">Farm size (acres)</Label>
-                <Input
-                  value={formData.farmSize}
-                  onChange={(e) => setFormData({ ...formData, farmSize: e.target.value })}
-                  placeholder="e.g. 2.5"
-                />
-              </div>
-
-              <div>
-                <Label className="block text-sm font-medium text-gray-700 mb-2">Primary crop</Label>
-                <select
-                  value={formData.cropType}
-                  onChange={(e) => setFormData({ ...formData, cropType: e.target.value })}
-                  className="w-full rounded-md border px-3 py-2"
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Primary Crop <span className="text-red-500">*</span>
+                </label>
+                <select 
+                  value={formData.cropType} 
+                  onChange={e => setFormData({...formData, cropType: e.target.value})}
+                  required
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 >
-                  <option value="">Select crop</option>
-                  {crops.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
+                  <option value="">Select Crop</option>
+                  {crops.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>
-          </Card>
+          </div>
 
           {/* Map Section */}
-          <Card className="p-8 shadow-lg rounded-2xl border-0 mb-8">
-            <h2 className="text-xl text-gray-900 mb-4">Farm Location</h2>
-            <p className="text-gray-600 mb-4">Click on the map to mark your farm location</p>
-
-            <div
-              onClick={handleMapClick}
-              className="relative w-full h-[400px] bg-gradient-to-br from-[#E8F5E9] to-[#C8E6C9] rounded-xl overflow-hidden cursor-crosshair border-2 border-gray-200"
-            >
-              {/* Simple grid overlay */}
-              <div className="absolute inset-0 grid grid-cols-10 grid-rows-10 opacity-10">
-                {Array.from({ length: 100 }).map((_, i) => (
-                  <div key={i} className="border border-transparent" />
-                ))}
-              </div>
-
-              {/* Pin */}
-              {mapPin && (
-                <div
-                  style={{ left: '50%', top: '50%' }}
-                  className="absolute pointer-events-none"
-                >
-                  <div className="transform -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
-                    <MapPin className="w-8 h-8 text-red-600" />
-                    <div className="bg-white/80 px-2 py-1 rounded-md text-sm shadow">{`(${mapPin.lat.toFixed(4)}, ${mapPin.lng.toFixed(4)})`}</div>
-                  </div>
-                </div>
-              )}
+          <div className="bg-white rounded-xl shadow-lg p-6 md:p-8">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800 border-b pb-3">
+              🗺️ Draw Your Farm Boundary
+            </h2>
+            
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
+              <p className="text-sm text-blue-900 font-medium">
+                📍 <strong>How to use:</strong> Click the polygon tool (📐) on the right side of the map. 
+                Click multiple points to draw your farm boundary. Double-click to finish.
+              </p>
             </div>
-            {error && <p className="text-red-600 mt-2">{error}</p>}
-          </Card>
+
+            <div className="relative border-4 border-gray-200 rounded-lg overflow-hidden" style={{ height: '500px' }}>
+              <MapContainer 
+                center={[20.5937, 78.9629]} 
+                zoom={5} 
+                style={{ height: '100%', width: '100%' }}
+                scrollWheelZoom={true}
+              >
+                <TileLayer 
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; OpenStreetMap'
+                />
+                <GeomanControls onShapeCreated={setFarmBoundary} />
+              </MapContainer>
+            </div>
+
+            {farmBoundary && (
+              <div className="mt-4 bg-green-50 border-l-4 border-green-500 p-4 rounded">
+                <p className="text-green-800 font-semibold flex items-center gap-2">
+                  <span className="text-2xl">✅</span>
+                  Farm boundary selected! You can now submit the form.
+                </p>
+              </div>
+            )}
+          </div>
 
           {/* Submit Button */}
-          <div className="flex justify-center">
-            <Button
-              type="submit"
-              disabled={!mapPin}
-              className="bg-[#22C55E] hover:bg-[#059669] text-white px-12 py-6 rounded-xl text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <button 
+              type="submit" 
+              disabled={loading || !farmBoundary}
+              className={`w-full py-4 px-6 rounded-lg font-bold text-lg transition-all transform ${
+                loading || !farmBoundary 
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                  : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700 hover:shadow-xl hover:scale-[1.02]'
+              }`}
             >
-              <Save className="mr-2 w-5 h-5" />
-              Save & Continue
-            </Button>
+              {loading ? '⏳ Processing...' : '🚀 Register & Fetch Satellite Data'}
+            </button>
           </div>
+
         </form>
       </div>
     </div>

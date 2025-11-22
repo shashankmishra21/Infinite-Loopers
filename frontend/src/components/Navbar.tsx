@@ -14,7 +14,6 @@ export function Navbar({ currentPage, onNavigate }: NavbarProps) {
     { id: 'home', label: 'Home' },
     { id: 'registration', label: 'Register' },
     { id: 'dashboard', label: 'Dashboard' },
-    { id: 'digitaltwin', label: 'Digital Twin' },
     { id: 'marketplace', label: 'Marketplace' },
     { id: 'certificate', label: 'Certificate' },
   ];
