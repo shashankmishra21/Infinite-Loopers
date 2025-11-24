@@ -1,46 +1,82 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User'); // FIXED: Changed from Farmer to User
+const User = require('../models/User');
 const Farm = require('../models/Farm');
 const axios = require('axios');
+
+const turf = require('@turf/helpers');
+const area = require('@turf/area');
+
+// area calculation using Turf.js
+function calculateAreaFromBoundary(coordinates) {
+  if (!coordinates || !Array.isArray(coordinates) || coordinates[0].length < 3) {
+    return 2.5; // Default fallback
+  }
+
+  try {
+    // Create GeoJSON polygon
+    const polygon = turf.polygon(coordinates);
+
+    // Calculate area in square meters
+    const areaInSquareMeters = area.default(polygon);
+
+    // Convert to acres (1 acre = 4046.86 square meters)
+    const areaInAcres = areaInSquareMeters / 4046.86;
+
+    console.log(`📏 Area calculation:`);
+    console.log(`   Square meters: ${areaInSquareMeters.toFixed(2)}`);
+    console.log(`   Acres: ${areaInAcres.toFixed(2)}`);
+
+    // Return reasonable value between 0.1-50 acres
+    const finalAcres = Math.max(0.1, Math.min(50, areaInAcres));
+    return parseFloat(finalAcres.toFixed(2));
+
+  } catch (error) {
+    console.error('Area calculation error:', error);
+    return 2.5;
+  }
+}
+
 
 // POST /api/farmers/register-with-satellite
 router.post('/register-with-satellite', async (req, res) => {
   try {
-    const { 
-      name, 
-      phone, 
-      state, 
-      district, 
-      village, 
-      cropType, 
-      farmBoundary, 
-      dateRange 
+    const {
+      name,
+      phone,
+      state,
+      district,
+      village,
+      cropType,
+      farmBoundary,
+      dateRange
     } = req.body;
 
-    // 1. Create or find user (farmer)
+    // 1. Create or find user
     let user = await User.findOne({ phone });
     if (!user) {
-      user = new User({ 
-        name, 
-        phone, 
+      user = new User({
+        name,
+        phone,
         address: { state, district, village },
         role: 'farmer'
       });
       await user.save();
     }
 
-    // 2. Calculate area from boundary
+    // 2. Calculate area from boundary automatically
     const acres = calculateAreaFromBoundary(farmBoundary);
+    console.log(`📏 Calculated area: ${acres} acres from map boundary`);
 
     // 3. Fetch satellite images (if configured)
     let satelliteImages = {};
     if (process.env.SENTINEL_CLIENT_ID) {
       try {
-        satelliteImages = await fetchSatelliteImages(farmBoundary, dateRange);
+        console.log('Fetching satellite images for boundary:', farmBoundary);
+        console.log('Date range:', dateRange);
+        // TODO: Implement actual Sentinel Hub API call
       } catch (error) {
         console.error('Satellite fetch error:', error.message);
-        // Continue without satellite images
       }
     }
 
@@ -54,137 +90,71 @@ router.post('/register-with-satellite', async (req, res) => {
       status: 'processing'
     };
 
-    // Add farmBoundary ONLY if coordinates are provided and valid
+    // Add farmBoundary ONLY if coordinates exist
     if (farmBoundary && Array.isArray(farmBoundary) && farmBoundary.length > 0) {
       farmData.farmBoundary = {
         type: 'Polygon',
-        coordinates: farmBoundary // Expected format: [[[lng, lat], [lng, lat], ...]]
+        coordinates: farmBoundary
       };
     }
 
     const farm = new Farm(farmData);
     await farm.save();
 
-    // 5. Trigger ML processing (if ML service and images available)
-    if (process.env.ML_SERVICE_URL && satelliteImages.january && satelliteImages.june) {
+    console.log(`✅ Farm created: ${farm._id}`);
+
+    // 5. Trigger ML processing
+    if (process.env.ML_SERVICE_URL) {
       try {
-        const mlServiceUrl = process.env.ML_SERVICE_URL;
-        const mlResponse = await axios.post(`${mlServiceUrl}/ml/calculate`, {
-          farmId: farm._id.toString(),
-          januaryImage: satelliteImages.january,
-          juneImage: satelliteImages.june,
-          acres: farm.acres,
-          cropType: farm.cropType
-        }, {
-          timeout: 30000 // 30 second timeout
-        });
+        console.log(`🤖 Calling ML service for farm ${farm._id}...`);
 
-        // Update farm with ML results
-        farm.ndviHistory = mlResponse.data.ndviHistory || [];
-        farm.carbonTons = mlResponse.data.carbonTons || 0;
-        farm.earningsEstimate = mlResponse.data.earningsEstimate || 0;
-        farm.status = 'completed';
-        await farm.save();
-
-        res.json({ 
-          success: true, 
-          data: { 
-            farmer: user, 
-            farm,
-            mlResults: mlResponse.data
+        const mlResponse = await axios.post(
+          `${process.env.ML_SERVICE_URL}/ml/calculate`,
+          {
+            farmId: farm._id.toString(),
+            acres: farm.acres,
+            cropType: farm.cropType
           },
-          message: 'Registration and processing completed successfully'
-        });
+          { timeout: 30000 }
+        );
+
+        if (mlResponse.data.success) {
+          console.log(`✅ ML calculation successful`);
+
+          farm.ndviHistory = mlResponse.data.ndviHistory;
+          farm.carbonTons = mlResponse.data.carbonTons;
+          farm.earningsEstimate = mlResponse.data.earningsEstimate;
+          farm.status = 'completed';
+          await farm.save();
+
+          console.log(`✅ Farm updated with ML results`);
+        }
       } catch (mlError) {
-        console.error('ML processing error:', mlError.message);
+        console.error('❌ ML processing error:', mlError.message);
         farm.status = 'failed';
         await farm.save();
-
-        res.json({
-          success: true,
-          data: { 
-            farmer: user, 
-            farm
-          },
-          message: 'Registration successful, but ML processing failed',
-          warning: mlError.message
-        });
       }
-    } else {
-      // No ML processing - return success
-      res.json({ 
-        success: true, 
-        data: { 
-          farmer: user, 
-          farm
-        },
-        message: 'Registration successful (ML processing skipped - service not configured)'
-      });
     }
+
+    // 6. Link farm to user
+    user.farms = user.farms || [];
+    user.farms.push(farm._id);
+    await user.save();
+
+    res.status(201).json({
+      success: true,
+      data: { farmer: user, farm },
+      message: 'Registration successful'
+    });
 
   } catch (error) {
     console.error('Satellite registration error:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       error: 'Registration failed',
-      details: error.message 
+      details: error.message
     });
   }
 });
-
-// Helper: Fetch satellite images from Sentinel Hub API
-async function fetchSatelliteImages(boundary, dateRange) {
-  try {
-    const sentinelClientId = process.env.SENTINEL_CLIENT_ID;
-    const sentinelClientSecret = process.env.SENTINEL_CLIENT_SECRET;
-    
-    if (!sentinelClientId || !sentinelClientSecret) {
-      throw new Error('Sentinel Hub credentials not configured');
-    }
-
-    // TODO: Implement actual Sentinel Hub API call
-    // For now, return placeholder paths
-    console.log('Fetching satellite images for boundary:', boundary);
-    console.log('Date range:', dateRange);
-
-    // Placeholder - replace with actual API implementation
-    return {
-      january: '/static/satellite-images/placeholder-jan.png',
-      june: '/static/satellite-images/placeholder-jun.png'
-    };
-
-    /* ACTUAL IMPLEMENTATION (uncomment when ready):
-    const sentinelService = require('../services/sentinelService');
-    return await sentinelService.fetchImages(boundary, {
-      januaryStart: '2025-01-01',
-      januaryEnd: '2025-01-31',
-      juneStart: '2025-06-01',
-      juneEnd: '2025-06-30'
-    });
-    */
-  } catch (error) {
-    throw new Error('Failed to fetch satellite images: ' + error.message);
-  }
-}
-
-// Helper: Calculate area from polygon boundary (in acres)
-function calculateAreaFromBoundary(coordinates) {
-  if (!coordinates || !Array.isArray(coordinates) || coordinates.length === 0) {
-    return 5.0; // Default fallback
-  }
-
-  // TODO: Use turf.js for accurate calculation
-  // npm install @turf/area
-  /*
-  const turf = require('@turf/area');
-  const polygon = turf.polygon(coordinates);
-  const areaInSquareMeters = turf.area(polygon);
-  const areaInAcres = areaInSquareMeters / 4046.86; // Convert to acres
-  return parseFloat(areaInAcres.toFixed(2));
-  */
-
-  // Placeholder calculation
-  return 5.0;
-}
 
 module.exports = router;

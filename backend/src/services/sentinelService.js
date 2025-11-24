@@ -23,38 +23,29 @@ class SentinelService {
           client_id: this.clientId,
           client_secret: this.clientSecret
         }),
-        {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        }
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
       );
 
       this.accessToken = response.data.access_token;
       this.tokenExpiry = Date.now() + (55 * 60 * 1000);
-      
       return this.accessToken;
     } catch (error) {
-      throw new Error('Failed to get Sentinel Hub access token: ' + error.message);
+      throw new Error('Failed to get Sentinel Hub token: ' + error.message);
     }
   }
 
   async fetchImages(boundary, dateRange) {
     try {
       const token = await this.getAccessToken();
-      const janImage = await this.requestImage(token, boundary, dateRange.januaryStart, dateRange.januaryEnd);
-      const juneImage = await this.requestImage(token, boundary, dateRange.juneStart, dateRange.juneEnd);
-
+      
+      // For demo, return placeholder paths
       return {
-        january: janImage,
-        june: juneImage
+        january: '/static/satellite-images/jan-2025.png',
+        june: '/static/satellite-images/jun-2025.png'
       };
     } catch (error) {
       throw new Error('Failed to fetch satellite images: ' + error.message);
     }
-  }
-
-  async requestImage(token, boundary, dateFrom, dateTo) {
-    // Placeholder - returns dummy path for now
-    return `/static/satellite-images/sample_${Date.now()}.png`;
   }
 }
 
